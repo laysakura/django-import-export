@@ -125,6 +125,4 @@ class Field(object):
         representation.
         """
         value = self.get_value(obj)
-        if value is None:
-            return ""
         return self.widget.render(value, obj)

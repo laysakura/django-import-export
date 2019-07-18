@@ -41,6 +41,8 @@ class Widget(object):
         :meth:`~import_export.widgets.Widget.render` takes care of converting
         the object's field to a value that can be written to a spreadsheet.
         """
+        if value is None:
+            return ""
         return force_text(value)
 
 
@@ -97,6 +99,8 @@ class CharWidget(Widget):
     """
 
     def render(self, value, obj=None):
+        if value is None:
+            return None
         return force_text(value)
 
 
