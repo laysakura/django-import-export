@@ -807,6 +807,7 @@ class ModelResource(six.with_metaclass(ModelDeclarativeMetaclass, Resource)):
         'AutoField': widgets.IntegerWidget,
         'NullBooleanField': widgets.BooleanWidget,
         'BooleanField': widgets.BooleanWidget,
+        'CharField': widgets.CharWidget,
     }
 
     @classmethod
