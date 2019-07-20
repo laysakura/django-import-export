@@ -266,6 +266,8 @@ class SimpleArrayWidget(Widget):
         return value.split(self.separator) if value else []
 
     def render(self, value, obj=None):
+        if not value:
+            return ""
         return self.separator.join(six.text_type(v) for v in value)
 
 
@@ -280,8 +282,9 @@ class JSONWidget(Widget):
             return ast.literal_eval(val)
 
     def render(self, value, obj=None):
-        if value:
-            return json.dumps(value)
+        if not value:
+            return ""
+        return json.dumps(value)
 
 
 class ForeignKeyWidget(Widget):
@@ -408,5 +411,7 @@ class ManyToManyWidget(Widget):
         })
 
     def render(self, value, obj=None):
+        if not value:
+            return ""
         ids = [smart_text(getattr(obj, self.field)) for obj in value.all()]
         return self.separator.join(ids)
