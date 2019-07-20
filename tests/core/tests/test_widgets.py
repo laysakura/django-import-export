@@ -167,6 +167,22 @@ class DecimalWidgetTest(TestCase):
         self.assertEqual(self.widget.clean("\r\n\t"), None)
 
 
+class CharWidgetTest(TestCase):
+
+    def setUp(self):
+        self.widget = widgets.CharWidget()
+
+    def test_clean(self):
+        self.assertEqual(self.widget.clean("🍣"), "🍣")  # emoji
+        self.assertEqual(self.widget.clean(""), "")      # empty str
+        self.assertEqual(self.widget.clean(None), None)  # None
+
+    def test_render(self):
+        self.assertEqual(self.widget.render("🍣"), "🍣")  # emoji
+        self.assertEqual(self.widget.render(""), "")      # empty str
+        self.assertEqual(self.widget.render(None), None)  # None
+
+
 class IntegerWidgetTest(TestCase):
 
     def setUp(self):
