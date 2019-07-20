@@ -96,6 +96,8 @@ class DecimalWidget(NumberWidget):
 class CharWidget(Widget):
     """
     Widget for converting text fields.
+
+    "" (empty str) and None must be differently rendered for fields like `VARCHAR() NULL`.
     """
 
     def render(self, value, obj=None):
