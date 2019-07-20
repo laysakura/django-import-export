@@ -283,7 +283,7 @@ class JSONWidget(Widget):
 
     def render(self, value, obj=None):
         if not value:
-            return ""
+            return None
         return json.dumps(value)
 
 
