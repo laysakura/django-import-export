@@ -77,6 +77,15 @@ class DateTimeWidgetTest(TestCase):
         self.assertEqual(self.widget.clean("13.08.2012 18:00:00"),
                          aware_dt)
 
+    def test_format_with_tz(self):
+        dt = datetime(2012, 8, 13, 18, 0, 0, tzinfo=timezone.utc)
+        widget = widgets.DateTimeWidget('%d.%m.%Y %H:%M:%S %z')
+
+        self.assertEqual(widget.clean("14.08.2012 03:00:00 +0900"),
+                         dt)
+        self.assertEqual(widget.render(dt),
+                         "13.08.2012 18:00:00 +0000")
+
 
 class DateWidgetBefore1900Test(TestCase):
 
