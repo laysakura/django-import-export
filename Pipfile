@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+sphinx-rtd-theme = "*"
+mysqlclient = "*"
+psycopg2 = "*"
+Sphinx = "*"
+
+[packages]
+tablib = "==0.12.1"
+diff-match-patch = "*"
+openpyxl = ">=2.4,<2.5"
+Django = ">=1.11,<1.12"
+coveralls = "*"
+
+[requires]
+python_version = "2.7"
