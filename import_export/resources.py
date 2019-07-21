@@ -465,7 +465,7 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
         """
         pass
 
-    def import_row(self, row, instance_loader, using_transactions=True, dry_run=False, **kwargs):
+    def import_row(self, row, instance_loader, using_transactions=True, dry_run=False, filter_import_type=None, **kwargs):
         """
         Imports data from ``tablib.Dataset``. Refer to :doc:`import_workflow`
         for a more complete description of the whole import process.
@@ -479,6 +479,8 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
 
         :param dry_run: If ``dry_run`` is set, or error occurs, transaction
             will be rolled back.
+
+        :param filter_import_type: If ``filter_import_type`` is set to one of ``"new"``, ``"update"``, or ``"delete"``, other import operations are ignored.
         """
         row_result = self.get_row_result_class()()
         try:
@@ -493,6 +495,9 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
             original = deepcopy(instance)
             diff = self.get_diff_class()(self, original, new)
             if self.for_delete(row, instance):
+                if filter_import_type and filter_import_type != 'delete':
+                    row_result.import_type = RowResult.IMPORT_TYPE_IGNORE
+                    return row_result
                 if new:
                     row_result.import_type = RowResult.IMPORT_TYPE_SKIP
                     diff.compare_with(self, None, dry_run)
@@ -501,6 +506,9 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
                     self.delete_instance(instance, using_transactions, dry_run)
                     diff.compare_with(self, None, dry_run)
             else:
+                if filter_import_type and filter_import_type != row_result.import_type:
+                    row_result.import_type = RowResult.IMPORT_TYPE_IGNORE
+                    return row_result
                 import_validation_errors = {}
                 try:
                     self.import_obj(instance, row, dry_run)
@@ -537,7 +545,8 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
         return row_result
 
     def import_data(self, dataset, dry_run=False, raise_errors=False,
-                    use_transactions=None, collect_failed_rows=False, **kwargs):
+                    use_transactions=None, collect_failed_rows=False,
+                    filter_import_type=None, **kwargs):
         """
         Imports data from ``tablib.Dataset``. Refer to :doc:`import_workflow`
         for a more complete description of the whole import process.
@@ -555,7 +564,12 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
 
         :param dry_run: If ``dry_run`` is set, or an error occurs, if a transaction
             is being used, it will be rolled back.
+
+        :param filter_import_type: If ``filter_import_type`` is set to one of ``"new"``, ``"update"``, or ``"delete"``, other import operations are ignored.
         """
+
+        if filter_import_type and filter_import_type not in ['new', 'update', 'delete']:
+            raise ValueError("filter_import_type must be one of 'new', 'update', 'delete'")
 
         if use_transactions is None:
             use_transactions = self.get_use_transactions()
@@ -569,9 +583,9 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
         using_transactions = (use_transactions or dry_run) and supports_transactions
 
         with atomic_if_using_transaction(using_transactions):
-            return self.import_data_inner(dataset, dry_run, raise_errors, using_transactions, collect_failed_rows, **kwargs)
+            return self.import_data_inner(dataset, dry_run, raise_errors, using_transactions, collect_failed_rows, filter_import_type, **kwargs)
 
-    def import_data_inner(self, dataset, dry_run, raise_errors, using_transactions, collect_failed_rows, **kwargs):
+    def import_data_inner(self, dataset, dry_run, raise_errors, using_transactions, collect_failed_rows, filter_import_type, **kwargs):
         result = self.get_result_class()()
         result.diff_headers = self.get_diff_headers()
         result.total_rows = len(dataset)
@@ -606,6 +620,7 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
                     instance_loader,
                     using_transactions=using_transactions,
                     dry_run=dry_run,
+                    filter_import_type=filter_import_type,
                     **kwargs
                 )
             result.increment_row_result_total(row_result)
@@ -621,7 +636,7 @@ class Resource(six.with_metaclass(DeclarativeMetaclass)):
                     result.append_failed_row(row, row_result.validation_error)
                 if raise_errors:
                     raise row_result.validation_error
-            if (row_result.import_type != RowResult.IMPORT_TYPE_SKIP or
+            if (row_result.import_type not in [RowResult.IMPORT_TYPE_SKIP, RowResult.IMPORT_TYPE_IGNORE] or
                     self._meta.report_skipped):
                 result.append_row_result(row_result)
 

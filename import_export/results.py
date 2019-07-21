@@ -19,6 +19,7 @@ class RowResult(object):
     IMPORT_TYPE_NEW = 'new'
     IMPORT_TYPE_DELETE = 'delete'
     IMPORT_TYPE_SKIP = 'skip'
+    IMPORT_TYPE_IGNORE = 'ignore'
     IMPORT_TYPE_ERROR = 'error'
     IMPORT_TYPE_INVALID = 'invalid'
 
@@ -27,6 +28,7 @@ class RowResult(object):
         IMPORT_TYPE_UPDATE,
         IMPORT_TYPE_DELETE,
         IMPORT_TYPE_SKIP,
+        IMPORT_TYPE_IGNORE
     ])
 
     def __init__(self):
@@ -83,6 +85,7 @@ class Result(object):
                                    (RowResult.IMPORT_TYPE_UPDATE, 0),
                                    (RowResult.IMPORT_TYPE_DELETE, 0),
                                    (RowResult.IMPORT_TYPE_SKIP, 0),
+                                   (RowResult.IMPORT_TYPE_IGNORE, 0),
                                    (RowResult.IMPORT_TYPE_ERROR, 0),
                                    (RowResult.IMPORT_TYPE_INVALID, 0)])
         self.total_rows = 0
