@@ -313,36 +313,74 @@ class ModelResourceTest(TestCase):
         self.assertEqual(instance.author_email, 'test@example.com')
         self.assertEqual(instance.price, Decimal("10.25"))
 
-    def test_import_data_filter_import_type_update(self):
-        result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='update')
+    def _setup_test_import_data_filter_import_type(self):
+        class B(BookResource):
+            delete = fields.Field(widget=widgets.BooleanWidget())
 
-        self.assertFalse(result.has_errors())
-        self.assertEqual(len(result.rows), 1)
-        self.assertTrue(result.rows[0].diff)
-        self.assertEqual(result.rows[0].import_type,
-                         results.RowResult.IMPORT_TYPE_UPDATE)
+            def for_delete(self, row, instance):
+                return self.fields['delete'].clean(row)
 
-        instance = Book.objects.get(pk=self.book.pk)
-        self.assertEqual(instance.author_email, 'test@example.com')
-        self.assertEqual(instance.price, Decimal("10.25"))
+        self.resource = B()
+
+        Book.objects.all().delete()
+        book_update = Book.objects.create(name="Some book (will be updated)")
+        book_delete = Book.objects.create(name="Another book (will be deleted)")
+
+        self.pk_new = book_update.pk + book_delete.pk + 1
+        self.pk_update = book_update.pk
+        self.pk_delete = book_delete.pk
+
+        self.dataset = tablib.Dataset(headers=['id', 'name', 'delete'])
+        row_new = [self.pk_new, 'New book', '0']
+        row_update = [self.pk_update, 'Some book (is updated)', '0']
+        row_deleted = [self.pk_delete, 'Another book (is deleted)', '1']
+        # TODO 「ないからdelete」の実現
+
+        self.dataset.append(row_new)
+        self.dataset.append(row_update)
+        self.dataset.append(row_deleted)
 
     def test_import_data_filter_import_type_new(self):
+        self._setup_test_import_data_filter_import_type()
         result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='new')
 
         self.assertFalse(result.has_errors())
-        self.assertEqual(len(result.rows), 1)
-        self.assertFalse(result.rows[0].diff)
-        self.assertEqual(result.rows[0].import_type,
-                         results.RowResult.IMPORT_TYPE_IGNORE)
+        self.assertEqual(result.totals['new'], 1)
+        self.assertEqual(result.totals['update'], 0)
+        self.assertEqual(result.totals['delete'], 0)
+        self.assertEqual(result.totals['ignore'], 2)
+
+        self.assertEqual(Book.objects.count(), 3)
+        self.assertEqual(Book.objects.order_by('id')[0].pk, self.pk_update)
+        self.assertEqual(Book.objects.order_by('id')[1].pk, self.pk_delete)
+        self.assertEqual(Book.objects.order_by('id')[2].pk, self.pk_new)
+
+    def test_import_data_filter_import_type_update(self):
+        self._setup_test_import_data_filter_import_type()
+        result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='update')
+
+        self.assertFalse(result.has_errors())
+        self.assertEqual(result.totals['new'], 0)
+        self.assertEqual(result.totals['update'], 1)
+        self.assertEqual(result.totals['delete'], 0)
+        self.assertEqual(result.totals['ignore'], 2)
+
+        self.assertEqual(Book.objects.count(), 2)
+        self.assertEqual(Book.objects.order_by('id')[0].pk, self.pk_update)
+        self.assertEqual(Book.objects.order_by('id')[1].pk, self.pk_delete)
 
     def test_import_data_filter_import_type_delete(self):
+        self._setup_test_import_data_filter_import_type()
         result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='delete')
 
         self.assertFalse(result.has_errors())
-        self.assertEqual(len(result.rows), 1)
-        self.assertFalse(result.rows[0].diff)
-        self.assertEqual(result.rows[0].import_type,
-                         results.RowResult.IMPORT_TYPE_IGNORE)
+        self.assertEqual(result.totals['new'], 0)
+        self.assertEqual(result.totals['update'], 0)
+        self.assertEqual(result.totals['delete'], 1)
+        self.assertEqual(result.totals['ignore'], 2)
+
+        self.assertEqual(Book.objects.count(), 1)
+        self.assertEqual(Book.objects.first().pk, self.pk_update)
 
     def test_import_data_invalid_filter_import_type(self):
         with self.assertRaises(ValueError):
