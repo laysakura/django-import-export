@@ -313,6 +313,47 @@ class ModelResourceTest(TestCase):
         self.assertEqual(instance.author_email, 'test@example.com')
         self.assertEqual(instance.price, Decimal("10.25"))
 
+    def test_import_data_filter_import_type_update(self):
+        result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='update')
+
+        self.assertFalse(result.has_errors())
+        self.assertEqual(len(result.rows), 1)
+        self.assertTrue(result.rows[0].diff)
+        self.assertEqual(result.rows[0].import_type,
+                         results.RowResult.IMPORT_TYPE_UPDATE)
+
+        instance = Book.objects.get(pk=self.book.pk)
+        self.assertEqual(instance.author_email, 'test@example.com')
+        self.assertEqual(instance.price, Decimal("10.25"))
+
+    def test_import_data_filter_import_type_new(self):
+        result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='new')
+
+        self.assertFalse(result.has_errors())
+        self.assertEqual(len(result.rows), 1)
+        self.assertFalse(result.rows[0].diff)
+        self.assertEqual(result.rows[0].import_type,
+                         results.RowResult.IMPORT_TYPE_IGNORE)
+
+    def test_import_data_filter_import_type_delete(self):
+        result = self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='delete')
+
+        self.assertFalse(result.has_errors())
+        self.assertEqual(len(result.rows), 1)
+        self.assertFalse(result.rows[0].diff)
+        self.assertEqual(result.rows[0].import_type,
+                         results.RowResult.IMPORT_TYPE_IGNORE)
+
+    def test_import_data_invalid_filter_import_type(self):
+        with self.assertRaises(ValueError):
+            self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='skip')
+        with self.assertRaises(ValueError):
+            self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='invalid')
+        with self.assertRaises(ValueError):
+            self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='error')
+        with self.assertRaises(ValueError):
+            self.resource.import_data(self.dataset, raise_errors=True, filter_import_type='foobar')
+
     def test_import_data_raises_field_specific_validation_errors(self):
         resource = AuthorResource()
         dataset = tablib.Dataset(headers=['id', 'name', 'birthday'])
